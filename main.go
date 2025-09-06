@@ -20,40 +20,48 @@ func main() {
 
 	for {
 		conn, _err := listener.Accept()
-		open := true
 
 		if _err != nil {
 			conn.Close()
 			panic(_err)
 		}
 
-		reader := bufio.NewReader(conn)
-		writer := bufio.NewWriter(conn)
+		go handleConnection(conn)
+	}
+}
 
-		rw := bufio.NewReadWriter(reader, writer)
+func handleConnection(conn net.Conn) {
+	fmt.Printf("%s Connection Open\n", conn.RemoteAddr().String())
+	open := true
 
-		for open {
-			rw.WriteString("say hi: \n")
+	reader := bufio.NewReader(conn)
+	writer := bufio.NewWriter(conn)
+
+	rw := bufio.NewReadWriter(reader, writer)
+
+	for open {
+		rw.WriteString("say hi: \n")
+		rw.Flush()
+
+		str, _err := rw.ReadString('\n')
+
+		if _err != nil {
+			panic(_err)
+		}
+
+		str = strings.TrimSpace(str)
+
+		fmt.Printf("%s: %s\n", conn.RemoteAddr().String(), str)
+
+		switch str {
+		case "hi":
+			rw.WriteString("hello\n")
 			rw.Flush()
-
-			str, _err := rw.ReadString('\n')
-
-			if _err != nil {
-				panic(_err)
-			}
-
-			str = strings.TrimSpace(str)
-
-			fmt.Printf("%s %s\n", conn.RemoteAddr().String(), str)
-
-			switch str {
-			case "hi":
-				rw.WriteString("hello\n")
-				rw.Flush()
-			case "bye":
-				conn.Close()
-				open = false
-			}
+		case "bye":
+			conn.Close()
+			open = false
 		}
 	}
+
+	fmt.Printf("%s Connection Closed\n", conn.RemoteAddr().String())
 }
