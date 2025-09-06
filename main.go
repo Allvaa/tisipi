@@ -2,20 +2,52 @@ package main
 
 import (
 	"bufio"
-	"os"
+	"fmt"
+	"net"
+	"strings"
 )
 
-func main() {
-	rw := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
-	rw.WriteString("What is your name? ")
-	rw.Flush()
+const PORT = 1550
 
-	str, _err := rw.ReadString('\n')
+func main() {
+	listener, _err := net.Listen("tcp", fmt.Sprintf(":%d", PORT))
+
+	fmt.Printf("TCP server listening on port %d\n", PORT)
 
 	if _err != nil {
 		panic(_err)
 	}
 
-	rw.WriteString("Hello, " + str)
-	rw.Flush()
+	for {
+		conn, _err := listener.Accept()
+
+		if _err != nil {
+			conn.Close()
+			panic(_err)
+		}
+
+		reader := bufio.NewReader(conn)
+		writer := bufio.NewWriter(conn)
+
+		rw := bufio.NewReadWriter(reader, writer)
+
+		rw.WriteString("say hi: \n")
+		rw.Flush()
+
+		str, _err := rw.ReadString('\n')
+
+		if _err != nil {
+			panic(_err)
+		}
+
+		str = strings.TrimSpace(str)
+
+		fmt.Printf("%s %s\n", conn.RemoteAddr().String(), str)
+
+		if str == "hi" {
+			rw.WriteString("hello\n")
+			rw.Flush()
+		}
+		conn.Close()
+	}
 }
